@@ -7,7 +7,11 @@ dependencies = [
   "openai>=2.38.0",
   "python-dotenv>=1.0.0",
   "google-genai>=1.0.0",
+  "bandit>=1.9.4",
 ]
 
 [tool.unittest]
 start-directory = "tests"
+
+[tool.setuptools.packages.find]
+include = ["codecourt*"]
