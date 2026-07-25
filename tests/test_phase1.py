@@ -4,6 +4,9 @@ from unittest.mock import patch
 
 from codecourt.agents import AgentLayer, MissingProviderKeyError
 from codecourt.grounding import accepted_reviewer_findings, analyze_python
+from codecourt.grounding import Finding
+from codecourt.rounds import adaptive_round_budget
+from codecourt.scoring import score
 from codecourt.prompts import GENERATOR_SYSTEM_PROMPT, REVIEWER_SYSTEM_PROMPT
 from codecourt.sample import VULNERABLE_XXE_SAMPLE
 
@@ -50,6 +53,24 @@ class PhaseOneTests(unittest.TestCase):
             accepted_reviewer_findings(raw, {"bandit:real"}),
             [{"claim":"grounded", "evidence_ref":"bandit:real"}],
         )
+
+    def test_scoring_is_deterministic(self) -> None:
+        finding = Finding("rule", "medium", "file.py", 1, "message", "tool", "evidence")
+        self.assertEqual(score([finding]), score([finding]))
+        self.assertEqual(score([finding]).gate, "pass")
+
+    def test_critical_finding_escalates_immediately(self) -> None:
+        finding = Finding("rule", "critical", "file.py", 1, "message", "tool", "evidence")
+        outcome = score([finding])
+        self.assertTrue(outcome.escalate)
+        self.assertEqual(outcome.gate, "neutral")
+        self.assertEqual(outcome.escalation_reason, "critical finding")
+
+    def test_adaptive_round_budget_uses_documented_cap(self) -> None:
+        self.assertEqual(adaptive_round_budget(10), 2)
+        self.assertEqual(adaptive_round_budget(50), 4)
+        self.assertEqual(adaptive_round_budget(101), 6)
+        self.assertEqual(adaptive_round_budget(10, unresolved_critical_after_round_two=1), 6)
 
 
 if __name__ == "__main__":
