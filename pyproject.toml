@@ -1,0 +1,11 @@
+[project]
+name = "codecourt"
+version = "0.1.0"
+description = "Grounded debate-driven evaluation for AI code agents"
+requires-python = ">=3.12"
+dependencies = [
+  "openai>=2.38.0",
+]
+
+[tool.unittest]
+start-directory = "tests"
