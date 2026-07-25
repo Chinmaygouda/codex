@@ -1,0 +1,11 @@
+<!doctype html>
+<title>CodeCourt runs</title>
+<h1>CodeCourt runs</h1>
+{% if runs %}
+<table border="1" cellpadding="7">
+  <tr><th>Run</th><th>PR</th><th>Gate</th><th>Risk</th><th>Created</th></tr>
+  {% for run in runs %}
+  <tr><td><a href="/runs/{{ run.run_id }}">{{ run.run_id }}</a></td><td>{{ run.pr_id }}</td><td>{{ run.gate }}</td><td>{{ run.risk_score }}</td><td>{{ run.created_at }}</td></tr>
+  {% endfor %}
+</table>
+{% else %}<p>No runs stored yet. Run <code>python -m codecourt.phase4</code>.</p>{% endif %}

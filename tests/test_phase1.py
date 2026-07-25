@@ -1,12 +1,16 @@
 import os
 import unittest
 from unittest.mock import patch
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from codecourt.agents import AgentLayer, MissingProviderKeyError
 from codecourt.grounding import accepted_reviewer_findings, analyze_python
 from codecourt.grounding import Finding
 from codecourt.rounds import adaptive_round_budget
 from codecourt.scoring import score
+from codecourt.evidence_store import EvidenceStore
+from codecourt.dashboard import create_app
 from codecourt.prompts import GENERATOR_SYSTEM_PROMPT, REVIEWER_SYSTEM_PROMPT
 from codecourt.sample import VULNERABLE_XXE_SAMPLE
 
@@ -71,6 +75,23 @@ class PhaseOneTests(unittest.TestCase):
         self.assertEqual(adaptive_round_budget(50), 4)
         self.assertEqual(adaptive_round_budget(101), 6)
         self.assertEqual(adaptive_round_budget(10, unresolved_critical_after_round_two=1), 6)
+
+    def test_dashboard_shows_empty_run_list(self) -> None:
+        with TemporaryDirectory() as directory:
+            app = create_app(Path(directory) / "store.sqlite3")
+            from fastapi.testclient import TestClient
+
+            response = TestClient(app).get("/")
+            self.assertEqual(response.status_code, 200)
+            self.assertIn("No runs stored yet", response.text)
+
+    def test_evidence_store_creates_schema(self) -> None:
+        with TemporaryDirectory() as directory:
+            store = EvidenceStore(Path(directory) / "store.sqlite3")
+            try:
+                self.assertEqual(store.list_runs(), [])
+            finally:
+                store.close()
 
 
 if __name__ == "__main__":

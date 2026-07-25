@@ -1,0 +1,15 @@
+<!doctype html>
+<title>CodeCourt run {{ run.run_id }}</title>
+<p><a href="/">All runs</a></p>
+<h1>Run {{ run.run_id }}</h1>
+<p>Gate: <strong>{{ run.gate }}</strong> · Risk score: <strong>{{ run.risk_score }}</strong>{% if run.escalation_reason %} · Escalation: {{ run.escalation_reason }}{% endif %}</p>
+<h2>Transcript</h2>
+{% for call in details.agent_calls %}
+<h3>Round {{ call.round_number }} — {{ call.actor }}</h3><pre>{{ call.output }}</pre>
+{% endfor %}
+<h2>Tool evidence</h2>
+{% for item in details.evidence %}
+<h3>Round {{ item.round_number }} — {{ item.tool }} ({{ item.evidence_ref }})</h3><pre>{{ item.output }}</pre>
+{% endfor %}
+<h2>Tool findings</h2>
+<ul>{% for finding in details.findings %}<li>{{ finding.severity }}: {{ finding.message }} ({{ finding.evidence_ref }})</li>{% else %}<li>None</li>{% endfor %}</ul>
