@@ -6,7 +6,7 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from .agents import AgentCall, AgentLayer, MissingOpenAIKeyError
+from .agents import AgentCall, AgentLayer, MissingProviderKeyError
 from .sample import GENERATOR_TASK, VULNERABLE_XXE_SAMPLE
 
 ARTIFACT_PATH = Path("artifacts/phase1-transcript.json")
@@ -53,7 +53,7 @@ def save_transcript(transcript: SingleRoundTranscript, path: Path = ARTIFACT_PAT
 def main() -> None:
     try:
         transcript = run_single_round()
-    except MissingOpenAIKeyError as error:
+    except MissingProviderKeyError as error:
         print(error)
         raise SystemExit(2) from error
     path = save_transcript(transcript)

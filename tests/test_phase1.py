@@ -1,7 +1,8 @@
 import os
 import unittest
+from unittest.mock import patch
 
-from codecourt.agents import AgentLayer, MissingOpenAIKeyError
+from codecourt.agents import AgentLayer, MissingProviderKeyError
 from codecourt.prompts import GENERATOR_SYSTEM_PROMPT, REVIEWER_SYSTEM_PROMPT
 from codecourt.sample import VULNERABLE_XXE_SAMPLE
 
@@ -16,14 +17,18 @@ class PhaseOneTests(unittest.TestCase):
         self.assertIn("Do not invent vulnerabilities", REVIEWER_SYSTEM_PROMPT)
         self.assertIn("tool-confirmed", REVIEWER_SYSTEM_PROMPT)
 
-    def test_live_calls_require_an_api_key(self) -> None:
+    def test_selected_provider_requires_an_api_key(self) -> None:
         original_key = os.environ.pop("OPENAI_API_KEY", None)
+        original_gemini_key = os.environ.pop("GEMINI_API_KEY", None)
         try:
-            with self.assertRaises(MissingOpenAIKeyError):
-                AgentLayer().generate("test")
+            with patch("codecourt.agents.load_dotenv"):
+                with self.assertRaises(MissingProviderKeyError):
+                    AgentLayer(provider="openai").generate("test")
         finally:
             if original_key is not None:
                 os.environ["OPENAI_API_KEY"] = original_key
+            if original_gemini_key is not None:
+                os.environ["GEMINI_API_KEY"] = original_gemini_key
 
 
 if __name__ == "__main__":
