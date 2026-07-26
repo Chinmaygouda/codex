@@ -35,9 +35,9 @@ def run_grounded_round(agent_layer: AgentLayer | None = None) -> GroundedRound:
     evidence = original_tools.evidence + candidate_tools.evidence
     reviewer_input = """Review the Generator response using only the evidence below.
 Return JSON only with this shape:
-{"findings":[{"severity":"high|medium|low","claim":"...","fix":"...","evidence_ref":"..."}]}
-Every finding must cite exactly one evidence_ref from the supplied evidence. Do not include
-judgment-only findings, and return an empty findings list if no evidence supports a claim.
+{"findings":[{"rule_id":"...","severity":"high|medium|low","claim":"...","fix":"...","evidence_ref":"..."}]}
+Every finding must exactly match a supplied tool finding's rule_id, severity, and evidence_ref.
+Do not include judgment-only findings; return an empty findings list if no tool finding supports a claim.
 
 Original code:
 ```python
@@ -53,7 +53,7 @@ Evidence:
         json.dumps([item.as_dict() for item in evidence], indent=2),
     )
     reviewer = agents.review(reviewer_input)
-    accepted = accepted_reviewer_findings(reviewer.output, {item.evidence_ref for item in evidence})
+    accepted = accepted_reviewer_findings(reviewer.output, original_tools.findings + candidate_tools.findings)
     return GroundedRound(generator, reviewer, original_tools, candidate_tools, accepted)
 
 

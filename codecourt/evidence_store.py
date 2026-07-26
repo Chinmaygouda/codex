@@ -123,12 +123,16 @@ class EvidenceStore:
         return self._connection.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,)).fetchone()
 
     def run_details(self, run_id: str) -> dict[str, list[sqlite3.Row]]:
-        tables = ("rounds", "agent_calls", "evidence", "findings", "reviewer_claims")
+        queries = {
+            "rounds": "SELECT * FROM rounds WHERE run_id = ? ORDER BY round_number, id",
+            "agent_calls": "SELECT * FROM agent_calls WHERE run_id = ? ORDER BY round_number, id",
+            "evidence": "SELECT * FROM evidence WHERE run_id = ? ORDER BY round_number, id",
+            "findings": "SELECT * FROM findings WHERE run_id = ? ORDER BY round_number, id",
+            "reviewer_claims": "SELECT * FROM reviewer_claims WHERE run_id = ? ORDER BY round_number, id",
+        }
         return {
-            table: self._connection.execute(
-                f"SELECT * FROM {table} WHERE run_id = ? ORDER BY round_number, id", (run_id,)
-            ).fetchall()
-            for table in tables
+            table: self._connection.execute(query, (run_id,)).fetchall()
+            for table, query in queries.items()
         }
 
     def _initialize(self) -> None:

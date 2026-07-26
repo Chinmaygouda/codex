@@ -62,10 +62,7 @@ def run_round_sequence(
         candidate_code = _first_python_block(generator.output) or current_code
         tool_result = analyzer(candidate_code, f"round_{round_number}_candidate.py")
         reviewer = agents.review(_reviewer_input(candidate_code, generator.output, tool_result))
-        accepted = accepted_reviewer_findings(
-            reviewer.output,
-            {evidence.evidence_ref for evidence in tool_result.evidence},
-        )
+        accepted = accepted_reviewer_findings(reviewer.output, tool_result.findings)
         outcome = score(tool_result.findings)
         record = RoundRecord(round_number, generator, reviewer, tool_result, outcome, accepted)
         records.append(record)
@@ -111,8 +108,9 @@ def _generator_input(code: str, records: list[RoundRecord]) -> str:
 def _reviewer_input(code: str, generator_output: str, tool_result: ToolResult) -> str:
     return """Review the Generator response using only this round's tool evidence.
 Return JSON only:
-{"findings":[{"severity":"high|medium|low","claim":"...","fix":"...","evidence_ref":"..."}]}
-Every finding must cite one supplied evidence_ref. Do not include judgment-only findings.
+{"findings":[{"rule_id":"...","severity":"high|medium|low","claim":"...","fix":"...","evidence_ref":"..."}]}
+Every finding must exactly match a supplied tool finding's rule_id, severity, and evidence_ref.
+Do not include judgment-only findings.
 
 Candidate code:
 ```python

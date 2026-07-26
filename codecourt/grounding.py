@@ -7,12 +7,13 @@ import hashlib
 import importlib
 import json
 import re
-import subprocess
+# Required for the fixed-argument local Bandit invocation.
+import subprocess  # nosec B404
 import sys
 import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 
 @dataclass(frozen=True)
@@ -63,7 +64,15 @@ def _run_bandit(code: str, filename: str) -> tuple[list[Finding], list[ToolEvide
         target = Path(directory) / filename
         target.write_text(code, encoding="utf-8")
         command = (sys.executable, "-m", "bandit", "-f", "json", "-q", str(target))
-        completed = subprocess.run(command, capture_output=True, text=True, timeout=30, check=False)
+        # The command is fixed and uses no shell; untrusted code is only a temp-file argument.
+        completed = subprocess.run(  # nosec B603
+            command,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+            shell=False,
+        )
     output = completed.stdout or completed.stderr
     evidence_ref = _evidence_ref("bandit", output)
     evidence = ToolEvidence(evidence_ref, "bandit", command, output)
@@ -194,8 +203,10 @@ def _evidence_ref(tool: str, output: str) -> str:
     return f"{tool}:{digest}"
 
 
-def accepted_reviewer_findings(raw_review: str, evidence_refs: set[str]) -> list[dict[str, Any]]:
-    """Keep only structured Reviewer claims that cite evidence from this run."""
+def accepted_reviewer_findings(
+    raw_review: str, tool_findings: Iterable[Finding]
+) -> list[dict[str, Any]]:
+    """Keep only claims whose rule, severity, and evidence match a tool finding."""
     try:
         payload = json.loads(raw_review)
     except json.JSONDecodeError:
@@ -207,10 +218,16 @@ def accepted_reviewer_findings(raw_review: str, evidence_refs: set[str]) -> list
         except json.JSONDecodeError:
             return []
     findings = payload.get("findings", []) if isinstance(payload, dict) else []
+    supported = {
+        (finding.rule_id, finding.severity.lower(), finding.evidence_ref)
+        for finding in tool_findings
+    }
     return [
         finding
         for finding in findings
         if isinstance(finding, dict)
+        and isinstance(finding.get("rule_id"), str)
+        and isinstance(finding.get("severity"), str)
         and isinstance(finding.get("evidence_ref"), str)
-        and finding["evidence_ref"] in evidence_refs
+        and (finding["rule_id"], finding["severity"].lower(), finding["evidence_ref"]) in supported
     ]

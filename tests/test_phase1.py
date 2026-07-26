@@ -25,6 +25,12 @@ class PhaseOneTests(unittest.TestCase):
         self.assertIn("Do not invent vulnerabilities", REVIEWER_SYSTEM_PROMPT)
         self.assertIn("tool-confirmed", REVIEWER_SYSTEM_PROMPT)
 
+    def test_phase_one_explicitly_prohibits_ungrounded_findings(self) -> None:
+        import inspect
+        from codecourt import phase1
+
+        self.assertIn("Do not make any security", inspect.getsource(phase1.run_single_round))
+
     def test_selected_provider_requires_an_api_key(self) -> None:
         original_key = os.environ.pop("OPENAI_API_KEY", None)
         original_gemini_key = os.environ.pop("GEMINI_API_KEY", None)
@@ -48,15 +54,22 @@ class PhaseOneTests(unittest.TestCase):
         self.assertTrue(any(finding.rule_id == "CC-API-404" for finding in result.findings))
 
     def test_unsupported_reviewer_claim_is_not_accepted(self) -> None:
-        raw = '{"findings":[{"claim":"unsupported","evidence_ref":"missing"}]}'
-        self.assertEqual(accepted_reviewer_findings(raw, {"bandit:real"}), [])
+        tool_finding = Finding("B123", "high", "file.py", 1, "message", "bandit", "bandit:real")
+        raw = '{"findings":[{"rule_id":"B123","severity":"high","claim":"unsupported","evidence_ref":"missing"}]}'
+        self.assertEqual(accepted_reviewer_findings(raw, [tool_finding]), [])
 
     def test_supported_reviewer_claim_in_fenced_json_is_accepted(self) -> None:
-        raw = '```json\n{"findings":[{"claim":"grounded","evidence_ref":"bandit:real"}]}\n```'
+        tool_finding = Finding("B123", "high", "file.py", 1, "message", "bandit", "bandit:real")
+        raw = '```json\n{"findings":[{"rule_id":"B123","severity":"high","claim":"grounded","evidence_ref":"bandit:real"}]}\n```'
         self.assertEqual(
-            accepted_reviewer_findings(raw, {"bandit:real"}),
-            [{"claim":"grounded", "evidence_ref":"bandit:real"}],
+            accepted_reviewer_findings(raw, [tool_finding]),
+            [{"rule_id":"B123", "severity":"high", "claim":"grounded", "evidence_ref":"bandit:real"}],
         )
+
+    def test_reviewer_claim_with_mismatched_rule_is_not_accepted(self) -> None:
+        tool_finding = Finding("B123", "high", "file.py", 1, "message", "bandit", "bandit:real")
+        raw = '{"findings":[{"rule_id":"OTHER","severity":"high","claim":"wrong","evidence_ref":"bandit:real"}]}'
+        self.assertEqual(accepted_reviewer_findings(raw, [tool_finding]), [])
 
     def test_scoring_is_deterministic(self) -> None:
         finding = Finding("rule", "medium", "file.py", 1, "message", "tool", "evidence")

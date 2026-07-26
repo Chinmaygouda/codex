@@ -29,8 +29,9 @@ def run_single_round(agent_layer: AgentLayer | None = None) -> SingleRoundTransc
     generator_input = f"{GENERATOR_TASK}\n\n```python\n{VULNERABLE_XXE_SAMPLE}```"
     generator = agents.generate(generator_input)
     reviewer_input = (
-        "Review this Generator response against the original code. Phase 1 has no "
-        "tool output yet, so do not represent any claim as tool-confirmed.\n\n"
+        "Phase 1 has no tool output. Do not make any security, correctness, performance, "
+        "or design finding because it would be ungrounded. Reply with exactly "
+        "{\"findings\": []} to acknowledge the evidence boundary.\n\n"
         f"Original code:\n```python\n{VULNERABLE_XXE_SAMPLE}```\n\n"
         f"Generator response:\n{generator.output}"
     )
