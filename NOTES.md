@@ -22,3 +22,5 @@
   identified it during the self-audit.
 - Kept the subprocess-based Bandit adapter intentionally: it invokes a fixed executable
   argument list, uses no shell, writes only to a temporary directory, and has a timeout.
+- Made the default SQLite path independent of the terminal working directory so an
+  Antigravity-launched dashboard reads the same evidence store as the runner.

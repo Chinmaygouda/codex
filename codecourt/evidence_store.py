@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import uuid
 from pathlib import Path
 
 from .rounds import DebateResult
 
-DEFAULT_DATABASE_PATH = Path("data/codecourt.sqlite3")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_DATABASE_PATH = Path(
+    os.environ.get("CODECOURT_DATABASE_PATH", PROJECT_ROOT / "data" / "codecourt.sqlite3")
+)
 
 
 class EvidenceStore:
